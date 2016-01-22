@@ -13,23 +13,27 @@ lib_path = os.path.abspath("/home/sheng/workspace/OpenPV/pv-core/python/")
 sys.path.append(lib_path)
 from pvtools import *
 
+demo = False
+
 def segmentDepth(depth, segments):
     segDepth = np.zeros(depth.shape)
-    segVals = []
+    segMean = []
+    segStd = []
     segCoords = []
     segLabels = []
     #Segment depth based on segmentations
     for label in np.unique(segments):
         #Find average depth of superpixel, not counting 0s
         spIdxs = np.nonzero(segments == label)
-        meanIdxs = np.nonzero(depth[spIdxs] != 0)
-        #If meanIdxs is empty, set as 0
-        if meanIdxs[0].size == 0:
+        spValidIdxs = np.nonzero(depth[spIdxs] != 0)
+        #If spValidIdxs is empty, set as 0
+        if spValidIdxs[0].size == 0:
             val = 0
         else:
             listVals = depth[spIdxs]
-            val = np.mean(listVals[meanIdxs])
-            segVals.append(val)
+            val = np.mean(listVals[spValidIdxs])
+            segMean.append(val)
+            segStd.append(np.std(listVals[spValidIdxs]))
             #Stored as (nyTop, nxLeft, height, width)
             nyTop = np.min(spIdxs[0])
             nxLeft = np.min(spIdxs[1])
@@ -39,12 +43,12 @@ def segmentDepth(depth, segments):
             segLabels.append(label)
         #Set all values to val
         segDepth[spIdxs] = val
-    return (segDepth, segVals, segCoords, segLabels)
+    return (segDepth, segMean, segStd, segCoords, segLabels)
 
 #nsegments Number of segments
 #compactness Balances color and space proximity
 #Higher gives more uniform segments
-def calcSegments(image, nsegments = 2000, compactness = 20):
+def calcSegments(image, nsegments = 2500, compactness = 10):
     #Width of gaussian smoothing kernel for preprocessing
     sigma = 1
     #SLIC segmentation
@@ -128,30 +132,41 @@ def cropTopLeft(inImg, targetY, targetX):
         return inImg[shape[0]-targetY:, shape[1]-targetX:, :]
 
 
-def makeDataset(imageList, depthList, pvpFilename, scaleFactor, pvpCropShape, trainTestSplit):
 
+def readData(imageListFilename, depthListFilename, pvpFilename):
     #Load pvp file
     pvpData = readpvpfile(pvpFilename)
 
     #Load list
-    imageFile = open(imageList, 'r')
-    depthFile = open(depthList, 'r')
+    imageFile = open(imageListFilename, 'r')
+    depthFile = open(depthListFilename, 'r')
     allImages = imageFile.readlines()
     allDepth = depthFile.readlines()
     imageFile.close()
     depthFile.close()
+    return (allImages, allDepth, pvpData)
+
+
+def makeDataset(allImages, allDepth, pvpData, scaleFactor, pvpCropShape, numImages, offset):
+
+    global demo
 
     numPvpFrames = pvpData.header["nbands"]
-    numLoop = np.min([numPvpFrames, len(allImages), len(allDepth), np.sum(trainTestSplit)])
+    numLoop = np.min([numPvpFrames, len(allImages), len(allDepth)])
 
     outData = None
     outGt = None
 
+    imgIdx = 0;
     #Loop through image lists
-    for (imfn, defn) in zip(allImages, allDepth):
+    for (pvpIdx, (imfn, defn)) in enumerate(zip(allImages, allDepth)):
         #Skip first index, as it's a repeat
         if(pvpIdx == 0):
             continue
+        if (pvpIdx < offset):
+            continue
+        if(pvpIdx >= numLoop or imgIdx >= numImages):
+            break
 
         imageFilename = allImages[pvpIdx][:-1]
         depthFilename = allDepth[pvpIdx][:-1]
@@ -160,7 +175,6 @@ def makeDataset(imageList, depthList, pvpFilename, scaleFactor, pvpCropShape, tr
         #Get pvp frame
         singlePvp = pvSparseToDense(pvpData, pvpIdx)
         (pvpy, pvpx, pvpnf) = singlePvp.shape
-
 
         img = img_as_float(io.imread(imageFilename))
         depth = imread(depthFilename)
@@ -171,20 +185,25 @@ def makeDataset(imageList, depthList, pvpFilename, scaleFactor, pvpCropShape, tr
         depth = cropTopLeft(depth, pvpy/scaleFactor, pvpx/scaleFactor)
 
         segments = calcSegments(img)
-        (segDepth, segVals, segCoords, segLabels) = segmentDepth(depth, segments)
+        (segDepth, segMeans, segStd, segCoords, segLabels) = segmentDepth(depth, segments)
+
+        if demo:
+            plotFig(img, segments, depth, segDepth)
+            pdb.set_trace()
 
         #Get dataset from single image
-        outData = makeSingleDataset(singlePvp, segCoords, pvpCropShape, scaleFactor)
-        outGt = segVals
+        singleData = makeSingleDataset(singlePvp, segCoords, pvpCropShape, scaleFactor)
+        singleGt = np.array(segMeans)/128
 
         ##Sort into training or testing
         #if(pvpIdx < trainTestSplit[0]):
         if outData == None:
-            outData = outData
-            trainGt = outGt
+            outData = singleData
+            outGt = singleGt
         else:
-            np.concatenate((trainData, outData), 0)
-            np.concatenate((trainGt, outGt), 0)
+            np.concatenate((outData, singleData), 0)
+            np.concatenate((outGt, singleGt), 0)
+        imgIdx += 1
         #else:
         #    if testData == None:
         #        testData = outData
@@ -193,7 +212,7 @@ def makeDataset(imageList, depthList, pvpFilename, scaleFactor, pvpCropShape, tr
         #        np.concatenate((testData, outData), 0)
         #        np.concatenate((testGt, outGt), 0)
 
-    return trainData, trainGt
+    return (outData, outGt, segLabels, segments)
 
 def plotFig(img, segments, depth, segDepth):
     #Plotting
@@ -207,10 +226,17 @@ def plotFig(img, segments, depth, segDepth):
     ax[0].set_title("Orig")
     ax[1].imshow(mark_boundaries(img, segments))
     ax[1].set_title("SLIC")
-    axx = ax[2].imshow(depth, cmap=colormap, vmin=.0001)
+    ax[2].imshow(depth, cmap=colormap, vmin=.0001)
     ax[2].set_title("Orig depth")
-    ax[3].imshow(segDepth, cmap=colormap, vmin=.0001)
+    axx = ax[3].imshow(segDepth, cmap=colormap, vmin=.0001)
     ax[3].set_title("Seg depth")
+
+    f.subplots_adjust(right=.8)
+    cbar_ax = f.add_axes([0.85, 0.15, 0.05, 0.7])
+    f.colorbar(axx, cax=cbar_ax)
+
+    plt.figure()
+    plt.hist(depth[np.nonzero(depth != 0)].flatten())
     #ax[4].imshow(img)
     #ax[4].imshow(depth, alpha=.5, vmin=.0001)
     #ax[4].set_title("Orig depth")
@@ -218,11 +244,9 @@ def plotFig(img, segments, depth, segDepth):
     #ax[5].imshow(segDepth, alpha=.5, vmin=.0001)
     #ax[5].set_title("Seg depth")
 
-    f.colorbar(axx)
+    #f.colorbar(axx)
 
     plt.show()
-
-    pdb.set_trace()
 
 if __name__ == "__main__":
     pvpFilename = "/home/sheng/mountData/benchmark/icaweights_binoc_LCA_fine/a12_V1.pvp"
@@ -231,12 +255,15 @@ if __name__ == "__main__":
 
     scaleFactor = .25
     #100 for training, 94 for testing
-    trainTestSplit = [100, 94]
+    numImages = 1
+    offset = 20
 
     #Patch to take around centroid of superpixel
     pvpCropShape = (33, 33)
 
-    (trainData, trainGt, testData, testGt) = makeDataset(imageList, depthList, pvpFilename, scaleFactor, pvpCropShape, trainTestSplit)
+    (allImages, allDepth, pvpData) = readData(imageList, depthList, pvpFilename)
+
+    (data, gt) = makeDataset(allImages, allDepth, pvpData, scaleFactor, pvpCropShape, numImages, offset)
 
 
     pdb.set_trace()
