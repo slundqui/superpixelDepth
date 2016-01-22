@@ -11,7 +11,7 @@ import matplotlib.image as mpimg
 
 imageFilename = "input/img_frame_000021_10.png"
 #Number of segments
-slic_nsegments = 400
+slic_nsegments = 1000
 #Balances color and space proximity
 #Higher gives more uniform segments
 slic_compactness = 10
@@ -19,7 +19,7 @@ slic_compactness = 10
 slic_sigma = 1
 
 #Number of segments
-seeds_nsegments = 400
+seeds_nsegments = 500
 #Number of block levels, more levels, more accurate
 seeds_nlevels = 4
 # 3x3 shape smoothing
@@ -59,8 +59,8 @@ segments_slic = slic(img, n_segments=slic_nsegments, compactness=slic_compactnes
 fsegments_slic = segments_slic
 
 #Using slic segments
-g = graph.rag_mean_color(img, segments_slic, mode='similarity')
-segments_ncuts = graph.cut_normalized(segments_slic, g)
+#g = graph.rag_mean_color(img, segments_slic, mode='similarity')
+#segments_ncuts = graph.cut_normalized(segments_slic, g)
 
 #Plot
 f, ax = plt.subplots(4, 1, sharex=True)
@@ -71,8 +71,8 @@ ax[1].imshow(mark_boundaries(img, segments_slic))
 ax[1].set_title("SLIC")
 ax[2].imshow(mark_boundaries(img, segments_seeds))
 ax[2].set_title("SEEDS")
-ax[3].imshow(mark_boundaries(img, segments_ncuts))
-ax[3].set_title("Ncuts on SLIC")
+#ax[3].imshow(mark_boundaries(img, segments_ncuts))
+#ax[3].set_title("Ncuts on SLIC")
 
 plt.show()
 
