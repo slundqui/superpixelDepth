@@ -13,7 +13,15 @@ lib_path = os.path.abspath("/home/sheng/workspace/OpenPV/pv-core/python/")
 sys.path.append(lib_path)
 from pvtools import *
 
-demo = False
+lib_path = os.path.abspath("/home/sheng/workspace/OpenPV/pv-core/python/tmp/")
+sys.path.append(lib_path)
+from writePvpFile import *
+
+
+
+
+
+demo = True
 
 def segmentDepth(depth, segments):
     segDepth = np.zeros(depth.shape)
@@ -146,6 +154,32 @@ def readData(imageListFilename, depthListFilename, pvpFilename):
     depthFile.close()
     return (allImages, allDepth, pvpData)
 
+def makePvpSegments(imageListFilename, outPvpFilename):
+    imageFile = open(imageListFilename, 'r')
+    allImages = imageFile.readlines()
+    imageFile.close()
+    #Read first image to get shape of image
+    img = img_as_float(io.imread(allImages[0][:-1]))
+    (imgY, imgX, drop) = img.shape
+
+    #Open output pvpfile for writing
+    outMatFile = open(outPvpFilename, 'wb')
+    #Write header out to file
+    writeHeaderFile(outMatFile, (imgY, imgX, 1), len(allImages))
+
+    for (i, imFilename) in enumerate(allImages):
+        #Remove newline character
+        singleImgFilename = imFilename[:-1]
+        print singleImgFilename
+        img = img_as_float(io.imread(singleImgFilename))
+        segments = calcSegments(img)
+        #Add single dimension to the end, as we have 1 feature
+        segments = np.expand_dims(segments, 2)
+        #Write data out to file
+        writeData(outMatFile, segments, i)
+    #Close pvp file
+    outMatFile.close()
+
 
 def makeDataset(allImages, allDepth, pvpData, scaleFactor, pvpCropShape, numImages, offset):
 
@@ -214,6 +248,8 @@ def makeDataset(allImages, allDepth, pvpData, scaleFactor, pvpCropShape, numImag
 
     return (outData, outGt, segLabels, segments)
 
+
+
 def plotFig(img, segments, depth, segDepth):
     #Plotting
     f, ax = plt.subplots(4, 1, sharex=True)
@@ -253,20 +289,29 @@ if __name__ == "__main__":
     imageList = "/home/sheng/mountData/datasets/kitti/list/image_2_benchmark_train_single.txt"
     depthList = "/home/sheng/mountData/datasets/kitti/list/benchmark_depth_disp_noc.txt"
 
-    scaleFactor = .25
-    #100 for training, 94 for testing
-    numImages = 1
-    offset = 20
+    pvpOutFilename = "kittiSeg.pvp"
 
-    #Patch to take around centroid of superpixel
-    pvpCropShape = (33, 33)
-
-    (allImages, allDepth, pvpData) = readData(imageList, depthList, pvpFilename)
-
-    (data, gt) = makeDataset(allImages, allDepth, pvpData, scaleFactor, pvpCropShape, numImages, offset)
+    makePvpSegments(imageList, pvpOutFilename)
 
 
-    pdb.set_trace()
+
+
+
+
+    #scaleFactor = .25
+    ##100 for training, 94 for testing
+    #numImages = 1
+    #offset = 20
+
+    ##Patch to take around centroid of superpixel
+    #pvpCropShape = (33, 33)
+
+    #(allImages, allDepth, pvpData) = readData(imageList, depthList, pvpFilename)
+
+    #(data, gt) = makeDataset(allImages, allDepth, pvpData, scaleFactor, pvpCropShape, numImages, offset)
+
+
+    #pdb.set_trace()
 
 
 
