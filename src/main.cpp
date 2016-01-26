@@ -4,13 +4,6 @@
  */
 
 #include "columns/buildandrun.hpp"
-//#include "LocalKernelConn.hpp"
-//#include "BatchConn.hpp"
-//#include "SLPError.hpp"
-//#include "BinaryThresh.hpp"
-//#include "DisparityMovie.hpp"
-//#include "DisparityLCALayer.hpp"
-//#include "SUPointProbe.hpp"
 
 #define MAIN_USES_CUSTOMGROUPS
 
