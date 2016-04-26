@@ -62,7 +62,7 @@ def segmentDepth(depth, segments):
 #nsegments Number of segments
 #compactness Balances color and space proximity
 #Higher gives more uniform segments
-def calcSegments(image, nsegments = 2500, compactness = 10):
+def calcSegments(image, nsegments = 700, compactness = 10):
     #Width of gaussian smoothing kernel for preprocessing
     sigma = 1
     #SLIC segmentation

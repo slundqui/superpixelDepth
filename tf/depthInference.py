@@ -1,6 +1,7 @@
 import pdb
 import numpy as np
 import tensorflow as tf
+import matplotlib.pyplot as plt
 
 weightInitStd = .001
 biasInitConst = .001
@@ -26,13 +27,12 @@ def maxpool_2x2(x):
 
 class unaryDepthInference:
     #Initialize tf parameters here
-    miniBatchSize = 128
-    progress = 100
-    learningRate = 1e-5
+    miniBatchSize = 64
+    progress = 10
+    learningRate = 1e-4
     lossVals = []
 
     def __init__(self, dataObj):
-        self.sess = tf.InteractiveSession()
         self.dataObj = dataObj
         self.buildModel()
 
@@ -60,13 +60,14 @@ class unaryDepthInference:
         #No pooling
         self.W_conv3 = weight_variable([3, 3, 256, 256])
         self.B_conv3 = bias_variable([256])
-        self.h_conv3 = tf.nn.relu(conv2d(self.h_pool2, self.W_conv3) + self.B_conv3)
+        self.h_conv3 = conv2d(self.h_pool2, self.W_conv3) + self.B_conv3
+        self.h_pool3 = tf.nn.relu(maxpool_2x2(self.h_conv3))
 
         #Fourth layer is 3x3 conv into 256 output channels
         #No pooling
         self.W_conv4 = weight_variable([3, 3, 256, 256])
         self.B_conv4 = bias_variable([256])
-        self.h_conv4 = tf.nn.relu(conv2d(self.h_conv3, self.W_conv4) + self.B_conv4)
+        self.h_conv4 = tf.nn.relu(conv2d(self.h_pool3, self.W_conv4) + self.B_conv4)
 
         #Fifth layer is 3x3 conv into 256 output channels
         #with pooling
@@ -78,7 +79,7 @@ class unaryDepthInference:
         #Next is 3 fully connected layers
         #We should have downsampled by 8 at this point
         #fc1 should have 4096 channels
-        numInputs = (inputShape[0]/8) * (inputShape[1]/8) * 256
+        numInputs = (inputShape[0]/16) * (inputShape[1]/16) * 256
         self.W_fc1 = weight_variable([numInputs, 4096])
         self.B_fc1 = bias_variable([4096])
         h_pool5_flat = tf.reshape(self.h_pool5, [-1, numInputs])
@@ -109,28 +110,31 @@ class unaryDepthInference:
         #Define saver
         self.saver = tf.train.Saver()
 
-        self.sess.run(tf.initialize_all_variables())
 
     def trainModel(self, numSteps, saveFile):
-        data = self.dataObj.getData(self.miniBatchSize)
-
+        #Define session
+        sess = tf.Session()
+        sess.run(tf.initialize_all_variables())
         for i in range(numSteps):
+            data = self.dataObj.getData(self.miniBatchSize)
             feedDict = {self.inputImage: data[0], self.gt: data[1]}
-            if i%progress:
-                self.lossVals.append(self.loss.eval(feed_dict=feedDict))
+            sess.run(self.optimizer, feed_dict=feedDict)
+            if i%self.progress == 0:
+                self.lossVals.append(self.loss.eval(feed_dict=feedDict, session=sess))
                 print("step %d, training loss %g"%(i, self.lossVals[-1]))
+        save_path = self.saver.save(sess, saveFile)
+        print("Model saved in file: %s" % save_path)
+        sess.close()
 
     def clearLoss(self):
         self.lossVals = []
 
     def plotLoss(self):
-        plt.plot(lossVals)
+        plt.plot(self.lossVals)
         plt.show()
 
-    def saveModel(self, saveFile):
-        #Save model
-        save_path = self.saver.save(self.sess, saveFile)
-        print("Model saved in file: %s" % save_path)
+    #def saveModel(self, saveFile):
+    #    #Save model
 
 
         #TO load:

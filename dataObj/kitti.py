@@ -4,6 +4,7 @@ import numpy as np
 from segment.segment import segmentDepth, calcSegments
 import matplotlib.pyplot as plt
 import pdb
+from random import shuffle
 
 
 def readList(filename):
@@ -23,11 +24,12 @@ class kittiObj:
         self.depthFiles = readList(depthList)
         assert(len(self.imgFiles) == len(self.depthFiles))
         self.nextImage()
-        self.nextSegment()
+        #self.nextSegment()
 
     #Function to return new image and depth file
     #TODO generate random ranking and randomize images
     def nextImage(self):
+        print "Updating Image to ", self.imgFiles[self.imgIdx]
         imgFile = self.imgFiles[self.imgIdx]
         depthFile = self.depthFiles[self.imgIdx]
         #Read data
@@ -45,14 +47,20 @@ class kittiObj:
         #We only need segMean (gt) and segCoords (for input parsing)
         self.segVals = segMean
         self.segCoords = segCoords
+
         assert(len(self.segVals) == len(self.segCoords))
+
+        #Generate shuffled index based on how many segments
+        self.shuffleIdx = range(len(self.segVals))
+        shuffle(self.shuffleIdx)
 
     #Crop image based on segments, give a label, and return both
     def nextSegment(self):
         (ny, nx, nf) = self.currImage.shape
-        outGt = self.segVals[self.segmentIdx]
+        segIdx = self.shuffleIdx[self.segmentIdx]
+        outGt = self.segVals[segIdx]
         #Find centroid
-        coords = self.segCoords[self.segmentIdx]
+        coords = self.segCoords[segIdx]
         centerY = coords[0] + (coords[2]/2)
         centerX = coords[1] + (coords[3]/2)
         topIdx = centerY - (self.inputShape[0]/2)
@@ -88,10 +96,13 @@ class kittiObj:
         return (padImg, outGt)
 
     def getData(self, numExample):
-        outData = np.zeros((numExample, cropShape[0], cropShape[1], 3))
+        outData = np.zeros((numExample, self.inputShape[0], self.inputShape[1], 3))
+        outGt = np.zeros((numExample, 1))
         for i in range(numExample):
-            outData[i, :, :, :] = self.nextSegment()
-        return outData
+            data = self.nextSegment()
+            outData[i, :, :, :] = data[0]
+            outGt[i, :] = data[1]
+        return (outData, outGt)
 
 #if __name__ == "__main__":
 #    imageList = "/home/sheng/mountData/datasets/kitti/list/image_2_benchmark_train_single.txt"
