@@ -1,7 +1,2 @@
 *.pyc
-*.cmake
-Debug
-Release
-CMakeFiles
-Makefile
-output
+*/*.pyc
