@@ -119,25 +119,21 @@ class unaryDepthInference:
             self.B_fc4 = bias_variable([1], "b_fc4")
             self.est = tf.matmul(self.h_fc3, self.W_fc4, name="est") + self.B_fc4
 
-        with tf.name_scope("Loss"):
-            #Define loss
-            self.loss = tf.reduce_mean(tf.square(self.gt - self.est))/2
+        #Define loss
+        self.loss = tf.reduce_mean(tf.square(self.gt - self.est))/2
 
-        with tf.name_scope("Train"):
-            #Define optimizer
-            self.optimizer = tf.train.AdamOptimizer(self.learningRate).minimize(self.loss)
+        #Define optimizer
+        self.optimizer = tf.train.AdamOptimizer(self.learningRate).minimize(self.loss)
 
-        with tf.name_scope("Saver"):
-            #Define saver
-            self.saver = tf.train.Saver()
-
+        #Define saver
+        self.saver = tf.train.Saver()
 
     def initSess(self):
         self.sess.run(tf.initialize_all_variables())
 
-    def writeSummary(self, summaryFilename):
-        tf.train.SummaryWriter(summaryFilename, self.sess.graph)
-        tf.train.write_graph(sess.graph_def, summaryFilename, "unaryDepthInference.pb", False)
+    def writeSummary(self, summaryDir):
+        tf.train.SummaryWriter(summaryDir, self.sess.graph)
+        tf.train.write_graph(self.sess.graph_def, summaryDir, "unaryDepthInference.pb", False)
 
     def closeSess(Self):
         self.sess.close()
