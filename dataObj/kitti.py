@@ -1,11 +1,10 @@
 import scipy.io as spio
 from skimage import io as imgio
 import numpy as np
-from segment.segment import segmentDepth, calcSegments
+from segment.segment import segmentDepth, calcSegments, fillSegments
 import matplotlib.pyplot as plt
 import pdb
 from random import shuffle
-
 
 def readList(filename):
     f = open(filename, 'r')
@@ -32,21 +31,24 @@ class kittiObj:
         print "Updating Image to ", self.imgFiles[self.imgIdx]
         imgFile = self.imgFiles[self.imgIdx]
         depthFile = self.depthFiles[self.imgIdx]
-        #Read data
-        self.currImage = imgio.imread(imgFile).astype(np.float32)/255
+        #Read data, with normalization to be -1 to 1
+        self.currImage = imgio.imread(imgFile).astype(np.float32)/256
         #Here, each pixel is uint16. We change it to uint8 by dividing by 256.
         #Additionally, most pixels are with range 0 to 128, so we divide by 128
-        #to map from 0 to 1
+        #to map from 0 to 1.
         self.currDepth = imgio.imread(depthFile).astype(np.float32)/(256 * 128)
+
         #Update imgIdx
         self.imgIdx = (self.imgIdx + 1) % len(self.imgFiles)
 
         #Segment image
         self.currSegments = calcSegments(self.currImage)
-        (segDepth, segMean, segStd, segCoords, segLabels) = segmentDepth(self.currDepth, self.currSegments)
-        #We only need segMean (gt) and segCoords (for input parsing)
+        (segMean, segStd, segCoords, segLabels) = segmentDepth(self.currDepth, self.currSegments)
+
+        #Normalize ground truth here
         self.segVals = segMean
         self.segCoords = segCoords
+        self.segLabels = segLabels
 
         assert(len(self.segVals) == len(self.segCoords))
 
@@ -55,9 +57,12 @@ class kittiObj:
         shuffle(self.shuffleIdx)
 
     #Crop image based on segments, give a label, and return both
-    def nextSegment(self):
+    def nextSegment(self, updateImage=True, shuffleIdx=True):
         (ny, nx, nf) = self.currImage.shape
-        segIdx = self.shuffleIdx[self.segmentIdx]
+        if(shuffleIdx):
+           segIdx = self.shuffleIdx[self.segmentIdx]
+        else:
+           segIdx = self.segmentIdx
         outGt = self.segVals[segIdx]
         #Find centroid
         coords = self.segCoords[segIdx]
@@ -85,15 +90,43 @@ class kittiObj:
             padRight = rightIdx - nx + 1
             rightIdx = nx - 1
         cropImg = self.currImage[topIdx:botIdx, leftIdx:rightIdx, :]
+        #Normalize cropImg here
+        #img range is 0 to 1, so change to -1 to 1
+        cropImg = (cropImg * 2) - 1
+
         padImg = np.pad(cropImg, ((padTop, padBot), (padLeft, padRight), (0, 0)), 'constant')
 
         #Update segmentIdx, and check if we need new image
         self.segmentIdx += 1
         if(self.segmentIdx >= len(self.segVals)):
-            self.nextImage()
+            #We put this flag for allSegments, as we don't want to
+            #update the image when we call allSegments
+            if(updateImage):
+               self.nextImage()
             self.segmentIdx = 0
 
         return (padImg, outGt)
+
+    #Get all segments of current image
+    def allSegments(self):
+       #Keep track of current index for nextSegment
+       tmpSegmentIdx = self.segmentIdx
+       #Reset segmentIdx to 0
+       self.segmentIdx = 0
+       numSegments = len(self.segVals)
+       outVals = np.zeros((numSegments, self.inputShape[0], self.inputShape[1], self.inputShape[2]))
+       outGt = np.zeros((numSegments, 1))
+
+       for i in range(numSegments):
+          data = self.nextSegment(updateImage=False, shuffleIdx=False)
+          outVals[i, :, :, :] = data[0]
+          outGt[i, :] = data[1]
+
+       assert(self.segmentIdx == 0)
+
+       #Restore segmentIdx
+       self.segmentIdx = tmpSegmentIdx
+       return (outVals, outGt)
 
     def getData(self, numExample):
         outData = np.zeros((numExample, self.inputShape[0], self.inputShape[1], 3))
@@ -103,6 +136,10 @@ class kittiObj:
             outData[i, :, :, :] = data[0]
             outGt[i, :] = data[1]
         return (outData, outGt)
+
+
+
+
 
 #if __name__ == "__main__":
 #    imageList = "/home/sheng/mountData/datasets/kitti/list/image_2_benchmark_train_single.txt"

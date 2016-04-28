@@ -9,28 +9,14 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from scipy.misc import imread
 
-#lib_path = os.path.abspath("/home/sheng/workspace/OpenPV/pv-core/python/")
-#sys.path.append(lib_path)
-#from pvtools import *
-#
-#lib_path = os.path.abspath("/home/sheng/workspace/OpenPV/pv-core/python/tmp/")
-#sys.path.append(lib_path)
-#from writePvpFile import *
-
-
-
-
-
 demo = True
 
 #Here, we return a 5 tuple
-#segDepth: shape of image, and is a depth map image
 #segMean: length numSegments, the mean of values per segment
 #segStd: length numSegments, the std of values per segment
 #segCoords: length of numSegments, describes each segment location in (nyTop, nxLeft, height, width)
 #segLabels: length of numSegments, corresponds to the label of each segment in input segments
 def segmentDepth(depth, segments):
-    segDepth = np.zeros(depth.shape)
     segMean = []
     segStd = []
     segCoords = []
@@ -55,19 +41,27 @@ def segmentDepth(depth, segments):
             nxRight = np.max(spIdxs[1])
             segCoords.append((nyTop, nxLeft, nyBot-nyTop, nxRight-nxLeft))
             segLabels.append(label)
-        #Set all values to val
-        segDepth[spIdxs] = val
-    return (segDepth, segMean, segStd, segCoords, segLabels)
+    return (segMean, segStd, segCoords, segLabels)
 
 #nsegments Number of segments
 #compactness Balances color and space proximity
 #Higher gives more uniform segments
-def calcSegments(image, nsegments = 700, compactness = 10):
+def calcSegments(image, nsegments = 1000, compactness = 10):
     #Width of gaussian smoothing kernel for preprocessing
     sigma = 1
     #SLIC segmentation
     segments= slic(image, n_segments=nsegments, compactness=compactness, sigma=sigma)
     return segments
+
+def fillSegments(segments, vals, labels):
+   assert(len(vals) == len(labels))
+   (ny, nx) = segments.shape
+   outFill = np.zeros((ny, nx))
+   for (val, label) in zip(vals, labels):
+      spIdxs = np.nonzero(segments == label)
+      outFill[spIdxs] = val
+   return outFill
+
 
 #def pvSparseToDense(pvData, idx):
 #    hdr = pvData.header
@@ -291,12 +285,10 @@ def plotFig(img, segments, depth, segDepth):
     plt.show()
 
 if __name__ == "__main__":
-    pvpFilename = "/home/sheng/mountData/benchmark/icaweights_binoc_LCA_fine/a12_V1.pvp"
-    imageList = "/home/sheng/mountData/datasets/kitti/list/image_2_benchmark_train_single.txt"
-    depthList = "/home/sheng/mountData/datasets/kitti/list/benchmark_depth_disp_noc.txt"
+    imageList = "/home/sheng/mountData/datasets/kitti/list/tf/trainImg.txt"
+    depthList = "/home/sheng/mountData/datasets/kitti/list/tf/trainDepth.txt"
 
     #pvpOutFilename = "kittiSeg.pvp"
-
     #makePvpSegments(imageList, pvpOutFilename)
 
     scaleFactor = .25
