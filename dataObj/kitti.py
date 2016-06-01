@@ -1,8 +1,8 @@
 import scipy.io as spio
-from skimage import io as imgio
+from scipy.ndimage import imread
 import numpy as np
 from segment.segment import segmentDepth, calcSegments, fillSegments
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import pdb
 from random import shuffle
 
@@ -22,8 +22,28 @@ class kittiObj:
         self.imgFiles = readList(imgList)
         self.depthFiles = readList(depthList)
         assert(len(self.imgFiles) == len(self.depthFiles))
+        self.numImages = len(self.imgFiles)
+        self.getMeanVar()
         self.nextImage()
         #self.nextSegment()
+
+    def setMeanVar(self, inMean, inStd):
+        self.mean = inMean
+        self.std = inStd
+
+    def getMeanVar(self):
+        depths = None
+        for f in self.depthFiles:
+            depthImg = imread(f).astype(np.float32)/256
+            validDepths = depthImg[np.nonzero(depthImg != 0)]
+            if(depths == None):
+                depths = validDepths
+            else:
+                depths = np.concatenate((depths, validDepths))
+        self.mean = np.mean(depths)
+        self.std = np.std(depths)
+        print "depth mean: ", self.mean
+        print "depth std: ", self.std
 
     #Function to return new image and depth file
     #TODO generate random ranking and randomize images
@@ -32,11 +52,10 @@ class kittiObj:
         imgFile = self.imgFiles[self.imgIdx]
         depthFile = self.depthFiles[self.imgIdx]
         #Read data, with normalization to be -1 to 1
-        self.currImage = imgio.imread(imgFile).astype(np.float32)/256
+        self.currImage = imread(imgFile).astype(np.float32)/256
         #Here, each pixel is uint16. We change it to uint8 by dividing by 256.
-        #Additionally, most pixels are with range 0 to 128, so we divide by 128
-        #to map from 0 to 1.
-        self.currDepth = imgio.imread(depthFile).astype(np.float32)/(256 * 128)
+        #The range will go from 0 to 255, but most depths do not exceed 128.
+        self.currDepth = imread(depthFile).astype(np.float32)/256
 
         #Update imgIdx
         self.imgIdx = (self.imgIdx + 1) % len(self.imgFiles)
@@ -63,7 +82,8 @@ class kittiObj:
            segIdx = self.shuffleIdx[self.segmentIdx]
         else:
            segIdx = self.segmentIdx
-        outGt = self.segVals[segIdx]
+        #Normalize depth gt here
+        outGt = np.log(self.segVals[segIdx]/self.std)
         #Find centroid
         coords = self.segCoords[segIdx]
         centerY = coords[0] + (coords[2]/2)
@@ -128,6 +148,8 @@ class kittiObj:
        self.segmentIdx = tmpSegmentIdx
        return (outVals, outGt)
 
+
+
     def getData(self, numExample):
         outData = np.zeros((numExample, self.inputShape[0], self.inputShape[1], 3))
         outGt = np.zeros((numExample, 1))
@@ -136,16 +158,4 @@ class kittiObj:
             outData[i, :, :, :] = data[0]
             outGt[i, :] = data[1]
         return (outData, outGt)
-
-
-
-
-
-#if __name__ == "__main__":
-#    imageList = "/home/sheng/mountData/datasets/kitti/list/image_2_benchmark_train_single.txt"
-#    depthList = "/home/sheng/mountData/datasets/kitti/list/benchmark_depth_disp_noc.txt"
-#    obj = kittiObj(imageList, depthList)
-#    #obj.getData(1)[0, :, :, :]
-
-
 

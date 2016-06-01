@@ -1,12 +1,19 @@
+import matplotlib
+matplotlib.use('Agg')
 from dataObj.kitti import kittiObj
 from tf.depthInference import unaryDepthInference
 from plot.plot import plotLoss, plotDepth, plotImg
-import matplotlib.pyplot as plt
+import numpy as np
 import pdb
 import os
 
-imageList = "/home/sheng/mountData/datasets/kitti/list/tf/trainImg.txt"
-depthList = "/home/sheng/mountData/datasets/kitti/list/tf/trainDepth.txt"
+vggFile = "/home/sheng/mountData/pretrain/imagenet-vgg-f.mat"
+
+trainImageList = "/home/sheng/mountData/datasets/kitti/list/tf/trainImg.txt"
+trainDepthList = "/home/sheng/mountData/datasets/kitti/list/tf/trainDepth.txt"
+
+testImageList = "/home/sheng/mountData/datasets/kitti/list/tf/testImg.txt"
+testDepthList = "/home/sheng/mountData/datasets/kitti/list/tf/testDepth.txt"
 
 outDir = "/home/sheng/mountData/unaryDepthInference/"
 runDir = outDir + "/run0/"
@@ -18,15 +25,29 @@ if not os.path.exists(runDir):
 if not os.path.exists(plotDir):
    os.makedirs(plotDir)
 
-load = False
-loadFile = outDir + "/run0/model0_save.ckpt"
+load = True
+loadFile = outDir + "/saved/pretrain.ckpt"
 
 #Get object from which tensorflow will pull data from
-dataObj = kittiObj(imageList, depthList)
+trainDataObj = kittiObj(trainImageList, trainDepthList)
+testDataObj = kittiObj(testImageList, testDepthList)
 
-#Get all segments
+testDataObj.setMeanVar(trainDataObj.mean, trainDataObj.std)
+
+##Get all segments
 #(drop, gt) = dataObj.allSegments()
 #plotImg(dataObj.currSegments, dataObj.segLabels, gt)
+#plotImg(dataObj.currSegments, dataObj.segLabels, np.log(gt))
+#
+#plt.hist(gt)
+#plt.show()
+#
+#plt.hist(np.log(gt))
+#plt.show()
+#
+#plt.set_trace()
+#
+#
 #plt.imshow(dataObj.currImage)
 #plt.show()
 #plt.imshow(dataObj.currDepth)
@@ -34,27 +55,40 @@ dataObj = kittiObj(imageList, depthList)
 #
 #pdb.set_trace()
 
-tfObj = unaryDepthInference(dataObj)
-
-tfObj.writeSummary(runDir + "/train")
+tfObj = unaryDepthInference(trainDataObj, vggFile)
 
 if(load):
    tfObj.loadModel(loadFile)
 else:
    tfObj.initSess()
 
+tfObj.writeSummary(runDir + "/tfout")
+
 print "Done init"
 
+#Pretrain
+
 for i in range(100):
-   saveFile = runDir + "/model" + str(i) + ".ckpt"
-   tfObj.trainModel(100, saveFile)
-   #Evaluate current frame
-   (evalData, gtData) = dataObj.allSegments()
-   estData = tfObj.evalModel(evalData)
-   plotDepth(dataObj.currSegments, dataObj.segLabels, gtData, estData, plotDir + "/gtVsEst_" + str(i) + ".png")
+   saveFile = runDir + "/depth-model"
+
+   #Evaluate test frame, providing gt so that it writes to summary
+   (evalData, gtData) = testDataObj.allSegments()
+   estData = tfObj.evalModelBatch(32,evalData, gtData)
+   print "Done test eval"
+   plotDepth(testDataObj.currImage, testDataObj.currSegments, testDataObj.segLabels, gtData, estData, plotDir + "/gtVsEst_test_" + str(i) + ".png")
+   print "Done test plot"
+
+   #Evaluate train frame, and plot
+   (evalData, gtData) = trainDataObj.allSegments()
+   estData = tfObj.evalModelBatch(32, evalData)
+   print "Done train eval"
+   plotDepth(trainDataObj.currImage, trainDataObj.currSegments, trainDataObj.segLabels, gtData, estData, plotDir + "/gtVsEst_train_" + str(i) + ".png")
+   print "Done train plot"
+
+   #Train
+   tfObj.trainModel(100, saveFile, pre=False)
 
 print "Done run"
-plotLoss(tfObl.lossVals, plotDir + "/loss.png")
 
 tfObj.closeSess()
 

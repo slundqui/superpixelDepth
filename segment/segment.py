@@ -5,8 +5,8 @@ from skimage.segmentation import slic
 from skimage import io
 from skimage.util import img_as_float
 from skimage.segmentation import mark_boundaries, relabel_sequential
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
+#import matplotlib.pyplot as plt
+#import matplotlib.cm as cm
 from scipy.misc import imread
 
 demo = True
@@ -249,41 +249,45 @@ def fillSegments(segments, vals, labels):
 #    return (outData, outGt, segLabels, segments)
 
 
-
-def plotFig(img, segments, depth, segDepth):
-    #Plotting
-    f, ax = plt.subplots(4, 1, sharex=True)
-
-    #Use jet colormap, where value of vmin gets set to black (for DNC regions)
-    colormap = cm.get_cmap('jet')
-    colormap.set_under('black')
-
-    ax[0].imshow(img)
-    ax[0].set_title("Orig")
-    ax[1].imshow(mark_boundaries(img, segments))
-    ax[1].set_title("SLIC")
-    ax[2].imshow(depth, cmap=colormap, vmin=.0001)
-    ax[2].set_title("Orig depth")
-    axx = ax[3].imshow(segDepth, cmap=colormap, vmin=.0001)
-    ax[3].set_title("Seg depth")
-
-    f.subplots_adjust(right=.8)
-    cbar_ax = f.add_axes([0.85, 0.15, 0.05, 0.7])
-    f.colorbar(axx, cax=cbar_ax)
-
-    plt.figure()
-    plt.hist(depth[np.nonzero(depth != 0)].flatten())
-    #ax[4].imshow(img)
-    #ax[4].imshow(depth, alpha=.5, vmin=.0001)
-    #ax[4].set_title("Orig depth")
-    #ax[5].imshow(img)
-    #ax[5].imshow(segDepth, alpha=.5, vmin=.0001)
-    #ax[5].set_title("Seg depth")
-
-    #f.colorbar(axx)
-
-    plt.show()
-
+#
+#def plotFig(img, segments, depth, segDepth):
+#    #Plotting
+#    f, ax = plt.subplots(4, 1, sharex=True)
+#
+#    #Use jet colormap, where value of vmin gets set to black (for DNC regions)
+#    colormap = cm.get_cmap('jet')
+#    colormap.set_bad('black')
+#    masked_depth = np.ma.masked_where(depth != depth, depth)
+#    masked_segDepth = np.ma.masked_where(segDepth == 0, segDepth)
+#    vmax = np.max(segDepth)
+#    vmin = np.min(segDepth)
+#
+#    ax[0].imshow(img)
+#    ax[0].set_title("Orig")
+#    ax[1].imshow(mark_boundaries(img, segments))
+#    ax[1].set_title("SLIC")
+#    ax[2].imshow(masked_depth, cmap=colormap, vmax=vmax, vmin=vmin)
+#    ax[2].set_title("Orig depth")
+#    axx = ax[3].imshow(masked_segDepth, cmap=colormap, vmax=vmax, vmin=vmin)
+#    ax[3].set_title("Seg depth")
+#
+#    f.subplots_adjust(right=.8)
+#    cbar_ax = f.add_axes([0.85, 0.15, 0.05, 0.7])
+#    f.colorbar(axx, cax=cbar_ax)
+#
+#    #plt.figure()
+#    #plt.hist(depth[np.nonzero(depth != 0)].flatten())
+#    #ax[4].imshow(img)
+#    #ax[4].imshow(depth, alpha=.5, vmin=.0001)
+#    #ax[4].set_title("Orig depth")
+#    #ax[5].imshow(img)
+#    #ax[5].imshow(segDepth, alpha=.5, vmin=.0001)
+#    #ax[5].set_title("Seg depth")
+#
+#    #f.colorbar(axx)
+#
+#    plt.show()
+#
 if __name__ == "__main__":
     imageList = "/home/sheng/mountData/datasets/kitti/list/tf/trainImg.txt"
     depthList = "/home/sheng/mountData/datasets/kitti/list/tf/trainDepth.txt"
@@ -291,7 +295,6 @@ if __name__ == "__main__":
     #pvpOutFilename = "kittiSeg.pvp"
     #makePvpSegments(imageList, pvpOutFilename)
 
-    scaleFactor = .25
     #100 for training, 94 for testing
     numImages = 1
     offset = 20

@@ -1,8 +1,9 @@
 import scipy.io as spio
 from skimage import io as imgio
 import numpy as np
-from segment import segmentDepth, calcSegments
+#from segment import segmentDepth, calcSegments
 import pdb
+import matplotlib.pyplot as plt
 
 def readList(filename):
     f = open(filename, 'r')
@@ -33,6 +34,9 @@ class make3dObj:
         depthMat = spio.loadmat(depthFile)
         self.currDepth = depthMat["Position3DGrid"]
         self.imgIdx = (self.imgIdx + 1) % len(self.imgFiles)
+
+        plt.imshow(currDepth)
+        plt.colorbar()
         pdb.set_trace()
 
     def getData(self, numExample):
