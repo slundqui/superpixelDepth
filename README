@@ -1,8 +1,8 @@
-Repository for playing around with segmentation algorithms
+Repository for implementing the unary potential from Liu, Fayao, Chunhua Shen, and Guosheng Lin. "Deep convolutional neural fields for depth estimation from a single image." Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2015.
 
-Prerequisites: Python 2.7, Tensorflow, scikit-image, matplotlib
+Prerequisites: Python 2.7, Tensorflow, scikit-image, numpy, matplotlib
 
-To run on pretrained weights, run:
+If you have access to the pretrained weights (2gb file, pretrain/saved.ckpt), run from the superpixelDepth outer directory:
 
 python demo.py <name of input image>
 

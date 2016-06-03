@@ -28,7 +28,7 @@ if not os.path.exists(plotDir):
 
 load = True
 #TODO change loadfile
-loadFile = outDir + "/saved/saved.ckpt"
+loadFile = "pretrain/saved.ckpt"
 
 #Allocate obj to calc mean/std
 imgObj = demoObj(inputFilename)
@@ -44,60 +44,3 @@ plotEval(imgObj.currImage, imgObj.currSegments, imgObj.segLabels, estData, input
 
 
 
-#Evaluate current frame
-
-##Load weights
-#if(load):
-#else:
-#   tfObj.initSess()
-#
-##Summary dir
-#tfObj.writeSummary(runDir + "/test")
-#
-#print "Done init"
-#numImages = testDataObj.numImages
-#
-#allGT = None
-#allEst = None
-#
-#for i in range(numImages):
-#    print i
-#    #Evaluate current frame
-#    (evalData, gtData) = testDataObj.allSegments()
-#    estData = tfObj.evalModelBatch(32, evalData)
-#    if(allGT == None):
-#        allGT = gtData
-#    else:
-#        allGT = np.concatenate((allGT, gtData), axis=0)
-#    if(allEst == None):
-#        allEst = estData
-#    else:
-#        allEst = np.concatenate((allEst, estData), axis=0)
-#
-#    plotDepth(testDataObj.currImage, testDataObj.currSegments, testDataObj.segLabels, gtData, estData, plotDir + "/gtVsEst_" + str(i) + ".png")
-#    #Get next image
-#    testDataObj.nextImage()
-#
-#print "Done run"
-#tfObj.closeSess()
-#
-##Undo normalization
-#est = np.exp(allEst) * trainDataObj.std
-#gt = np.exp(allGt) * trainDataObj.std
-#
-##Find average relative error
-#relE = np.mean(np.abs(gt - est)/gt)
-#print "rel: ", relE
-##log10 error
-#logE = np.mean(np.abs(np.log10(gt) - np.log10(est)))
-#print "log10: ", logE
-##rms
-#rmsE = np.sqrt(np.mean(np.power(gt - est,2)))
-#print "rms: ", rmsE
-#
-#
-#
-#
-#
-#
-#
