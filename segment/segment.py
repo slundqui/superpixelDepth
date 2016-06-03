@@ -9,7 +9,8 @@ from skimage.segmentation import mark_boundaries, relabel_sequential
 #import matplotlib.cm as cm
 from scipy.misc import imread
 
-demo = True
+def markBoundaries(image, segments):
+    return mark_boundaries(image, segments)
 
 #Here, we return a 5 tuple
 #segMean: length numSegments, the mean of values per segment

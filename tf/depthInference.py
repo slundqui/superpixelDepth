@@ -39,7 +39,7 @@ def maxpool_2x2(x, inName):
 class unaryDepthInference:
     #Initialize tf parameters here
     progress = 1
-    learningRate = 1e-4
+    learningRate = 1e-3
     timestep = 0
 
     def __init__(self, dataObj, vggFile = None):
@@ -65,9 +65,11 @@ class unaryDepthInference:
                     self.W_conv1 = weight_variable_fromnp(npWeights["conv1_w"], "w_conv1")
                     self.B_conv1 = weight_variable_fromnp(npWeights["conv1_b"], "b_conv1")
                 else:
-                    #First conv layer is 11x11, 3 input channels into 64 output channels
-                    self.W_conv1 = weight_variable_xavier([11, 11, 3, 64], "w_conv1", conv=True)
-                    self.B_conv1 = bias_variable([64], "b_conv1")
+                    self.W_conv1 = weight_variable_fromnp(np.zeros((11, 11, 3, 64), dtype=np.float32), "w_conv1")
+                    self.B_conv1 = weight_variable_fromnp(np.zeros((64), dtype=np.float32), "b_conv1")
+                    ##First conv layer is 11x11, 3 input channels into 64 output channels
+                    #self.W_conv1 = weight_variable_xavier([11, 11, 3, 64], "w_conv1", conv=True)
+                    #self.B_conv1 = bias_variable([64], "b_conv1")
                 self.h_conv1 = tf.nn.relu(conv2d(self.inputImage, self.W_conv1, "conv1") + self.B_conv1)
                 self.h_norm1 = tf.nn.local_response_normalization(self.h_conv1, name="LRN1")
                 #relu is communative op, so do relu after pool for efficiency
@@ -79,8 +81,10 @@ class unaryDepthInference:
                     self.W_conv2 = weight_variable_fromnp(npWeights["conv2_w"], "w_conv2")
                     self.B_conv2 = weight_variable_fromnp(npWeights["conv2_b"], "b_conv2")
                 else:
-                    self.W_conv2 = weight_variable_xavier([5, 5, 64, 256], "w_conv2", conv=True)
-                    self.B_conv2 = bias_variable([256], "b_conv2")
+                    self.W_conv2 = weight_variable_fromnp(np.zeros((5, 5, 64, 256), dtype=np.float32), "w_conv2")
+                    self.B_conv2 = weight_variable_fromnp(np.zeros((256), dtype=np.float32), "b_conv2")
+                    #self.W_conv2 = weight_variable_xavier([5, 5, 64, 256], "w_conv2", conv=True)
+                    #self.B_conv2 = bias_variable([256], "b_conv2")
                 self.h_conv2 = tf.nn.relu(conv2d(self.h_pool1, self.W_conv2, "conv2") + self.B_conv2)
                 self.h_norm2 = tf.nn.local_response_normalization(self.h_conv2, name="LRN2")
                 self.h_pool2 = maxpool_2x2(self.h_norm2, "pool2")
@@ -93,8 +97,10 @@ class unaryDepthInference:
                     self.W_conv3 = weight_variable_fromnp(npWeights["conv3_w"], "w_conv3")
                     self.B_conv3 = weight_variable_fromnp(npWeights["conv3_b"], "b_conv3")
                 else:
-                    self.W_conv3 = weight_variable_xavier([3, 3, 256, 256], "w_conv3", conv=True)
-                    self.B_conv3 = bias_variable([256], "b_conv3")
+                    self.W_conv3 = weight_variable_fromnp(np.zeros((3, 3, 256, 256), dtype=np.float32), "w_conv3")
+                    self.B_conv3 = weight_variable_fromnp(np.zeros((256), dtype=np.float32), "b_conv3")
+                    #self.W_conv3 = weight_variable_xavier([3, 3, 256, 256], "w_conv3", conv=True)
+                    #self.B_conv3 = bias_variable([256], "b_conv3")
                 self.h_conv3 = tf.nn.relu(conv2d(self.h_pool2, self.W_conv3, "conv3") + self.B_conv3, name="relu3")
 
             #Fourth layer is 3x3 conv into 256 output channels
@@ -105,8 +111,10 @@ class unaryDepthInference:
                     self.W_conv4 = weight_variable_fromnp(npWeights["conv4_w"], "w_conv4")
                     self.B_conv4 = weight_variable_fromnp(npWeights["conv4_b"], "b_conv4")
                 else:
-                    self.W_conv4 = weight_variable_xavier([3, 3, 256, 256], "w_conv4", conv=True)
-                    self.B_conv4 = bias_variable([256], "b_conv4")
+                    self.W_conv4 = weight_variable_fromnp(np.zeros((3, 3, 256, 256), dtype=np.float32), "w_conv4")
+                    self.B_conv4 = weight_variable_fromnp(np.zeros((256), dtype=np.float32), "b_conv4")
+                    #self.W_conv4 = weight_variable_xavier([3, 3, 256, 256], "w_conv4", conv=True)
+                    #self.B_conv4 = bias_variable([256], "b_conv4")
                 self.h_conv4 = tf.nn.relu(conv2d(self.h_conv3, self.W_conv4, "conv4") + self.B_conv4, name="relu4")
 
             #Fifth layer is 3x3 conv into 256 output channels
@@ -117,8 +125,10 @@ class unaryDepthInference:
                     self.W_conv5 = weight_variable_fromnp(npWeights["conv5_w"], "w_conv5")
                     self.B_conv5 = weight_variable_fromnp(npWeights["conv5_b"], "b_conv5")
                 else:
-                    self.W_conv5 = weight_variable_xavier([3, 3, 256, 256], "w_conv5", conv=True)
-                    self.B_conv5 = bias_variable([256], "b_conv5")
+                    self.W_conv5 = weight_variable_fromnp(np.zeros((3, 3, 256, 256), dtype=np.float32), "w_conv5")
+                    self.B_conv5 = weight_variable_fromnp(np.zeros((256), dtype = np.float32), "b_conv5")
+                    #self.W_conv5 = weight_variable_xavier([3, 3, 256, 256], "w_conv5", conv=True)
+                    #self.B_conv5 = bias_variable([256], "b_conv5")
                 self.h_conv5 = tf.nn.relu(conv2d(self.h_conv4, self.W_conv5, "conv5") + self.B_conv5)
                 self.h_norm5 = tf.nn.local_response_normalization(self.h_conv5, name="LRN5")
                 self.h_pool5 = maxpool_2x2(self.h_norm5, "pool5")
@@ -175,6 +185,8 @@ class unaryDepthInference:
 
             with tf.name_scope("Opt"):
                 #Define optimizer
+                #self.optimizerAll = tf.train.AdagradOptimizer(self.learningRate).minimize(self.loss)
+                #self.optimizerFC = tf.train.AdagradOptimizer(self.learningRate).minimize(self.loss,
                 self.optimizerAll = tf.train.AdamOptimizer(self.learningRate).minimize(self.loss)
                 self.optimizerFC = tf.train.AdamOptimizer(self.learningRate).minimize(self.loss,
                         var_list=[self.W_conv6,
@@ -290,6 +302,7 @@ class unaryDepthInference:
 
         startOffset = 0
         for it in range(numIt):
+            print it, " out of ", numIt
             #Calculate indices
             startDataIdx = startOffset
             endDataIdx = startOffset + miniBatchSize

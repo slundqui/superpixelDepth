@@ -1,1 +1,9 @@
 Repository for playing around with segmentation algorithms
+
+Prerequisites: Python 2.7, Tensorflow, scikit-image, matplotlib
+
+To run on pretrained weights, run:
+
+python demo.py <name of input image>
+
+The output will be placed in the provided path of the input image, appended with the suffix ".depth.png"

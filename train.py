@@ -25,8 +25,8 @@ if not os.path.exists(runDir):
 if not os.path.exists(plotDir):
    os.makedirs(plotDir)
 
-load = True
-loadFile = outDir + "/saved/pretrain.ckpt"
+load = False
+loadFile = outDir + "/saved/saved.ckpt"
 
 #Get object from which tensorflow will pull data from
 trainDataObj = kittiObj(trainImageList, trainDepthList)
@@ -67,8 +67,28 @@ tfObj.writeSummary(runDir + "/tfout")
 print "Done init"
 
 #Pretrain
-
 for i in range(100):
+   saveFile = runDir + "/depth-model-pre"
+
+   #Evaluate test frame, providing gt so that it writes to summary
+   (evalData, gtData) = testDataObj.allSegments()
+   estData = tfObj.evalModelBatch(32,evalData, gtData)
+   print "Done test eval"
+   plotDepth(testDataObj.currImage, testDataObj.currSegments, testDataObj.segLabels, gtData, estData, plotDir + "/gtVsEst_test_" + str(i) + ".png")
+   print "Done test plot"
+
+   #Evaluate train frame, and plot
+   (evalData, gtData) = trainDataObj.allSegments()
+   estData = tfObj.evalModelBatch(32, evalData)
+   print "Done train eval"
+   plotDepth(trainDataObj.currImage, trainDataObj.currSegments, trainDataObj.segLabels, gtData, estData, plotDir + "/gtVsEst_train_" + str(i) + ".png")
+   print "Done train plot"
+
+   #Train
+   tfObj.trainModel(100, saveFile, pre=True)
+
+#Train
+for i in range(1000):
    saveFile = runDir + "/depth-model"
 
    #Evaluate test frame, providing gt so that it writes to summary

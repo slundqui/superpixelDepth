@@ -15,7 +15,7 @@ trainImageList = "/home/sheng/mountData/datasets/kitti/list/tf/trainImg.txt"
 trainDepthList = "/home/sheng/mountData/datasets/kitti/list/tf/trainDepth.txt"
 
 outDir = "/home/sheng/mountData/unaryDepthInference/"
-runDir = outDir + "/testRunPreTrain/"
+runDir = outDir + "/testRun/"
 plotDir = runDir + "plots/"
 
 if not os.path.exists(runDir):
@@ -25,7 +25,7 @@ if not os.path.exists(plotDir):
    os.makedirs(plotDir)
 
 load = True
-loadFile = outDir + "/saved/pretrain.ckpt"
+loadFile = outDir + "/saved/saved.ckpt"
 
 #Get object from which tensorflow will pull data from
 testDataObj = kittiObj(imageList, depthList)
@@ -70,6 +70,10 @@ for i in range(numImages):
         allEst = np.concatenate((allEst, estData), axis=0)
 
     plotDepth(testDataObj.currImage, testDataObj.currSegments, testDataObj.segLabels, gtData, estData, plotDir + "/gtVsEst_" + str(i) + ".png")
+
+    gtOrig = np.exp(gtData) * trainDataObj.std
+    estOrig = np.exp(estData) * trainDataObj.std
+    plotDepth(testDataObj.currImage, testDataObj.currSegments, testDataObj.segLabels, gtOrig, estOrig, plotDir + "/gtVsEstOrig_" + str(i) + ".png")
     #Get next image
     testDataObj.nextImage()
 
@@ -78,7 +82,7 @@ tfObj.closeSess()
 
 #Undo normalization
 est = np.exp(allEst) * trainDataObj.std
-gt = np.exp(allGt) * trainDataObj.std
+gt = np.exp(allGT) * trainDataObj.std
 
 #Find average relative error
 relE = np.mean(np.abs(gt - est)/gt)

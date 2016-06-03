@@ -1,5 +1,7 @@
 import numpy as np
 from scipy.io import loadmat
+import pdb
+import matplotlib.pyplot as plt
 
 def convertW(inW):
     #inW is in the shape of [W, H, inF, outF]
@@ -30,4 +32,16 @@ def loadWeights(inFile):
 
 if __name__ == "__main__":
     inputFile = "/home/sheng/mountData/pretrain/imagenet-vgg-f.mat"
-    loadWeights(inputFile)
+    outdict = loadWeights(inputFile)
+    outmat = np.zeros((11*8, 11*8, 3))
+    for i in range(64):
+        x = i % 8
+        y = i / 8
+        xpos = x*11
+        ypos = y*11
+        outmat[ypos:ypos+11, xpos:xpos+11, :] = outdict["conv1_w"][:, :, :, i]
+
+    plt.imshow(outmat)
+    plt.show()
+
+    pdb.set_trace()
